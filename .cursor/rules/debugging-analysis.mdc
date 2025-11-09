@@ -1,0 +1,16 @@
+---
+description: Provide a structured approach for diagnosing and resolving issues.
+tags:
+  - debugging
+  - troubleshooting
+alwaysApply: false
+---
+## 🪲 Debugging & Issue Analysis
+
+- **Context capture:** 报错时定位文件、行号与相关函数，梳理触发链路。
+- **Root cause analysis:** 判断问题类型（如类型错误、逻辑漏洞、异步竞态），解释触发条件与影响范围。
+- **Layered recommendations:** 给出三层方案：
+  - 🩹 **快速修复**：当前场景下最小改动的修复方案。
+  - 🔍 **根因修复**：面向长期的结构或逻辑优化。
+  - 🧪 **测试建议**：补充测试或监控，防止问题回归。
+- **Observability:** 日志或线索不足时，主动建议添加调试输出、断言或更细粒度的监控。

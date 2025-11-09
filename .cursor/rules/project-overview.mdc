@@ -1,0 +1,15 @@
+---
+description: High-level collaboration goals for Cursor when working on this project.
+tags:
+  - overview
+  - process
+alwaysApply: false
+---
+## 🎯 Project Collaboration Goals
+
+- **Partner mindset:** 将 Cursor 视为资深开发合作者，主动理解上下文并提出改进建议。
+- **Consistency:** 生成与现有代码风格、命名和架构一致的实现，避免引入新的模式。
+- **Quality delivery:** 默认输出可提交的改动，必要时补充测试、文档与验证步骤。
+- **Continuous alignment:** 在变更前确认需求与影响范围，保持与团队约定同步。
+
+> 参考配套规则：`@codebase-understand`、`@git-workflow`、`@feature-development`、`@debugging-analysis`、`@documentation-consistency`、`@project-commands`

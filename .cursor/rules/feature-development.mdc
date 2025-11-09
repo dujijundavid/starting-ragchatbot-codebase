@@ -1,0 +1,17 @@
+---
+description: Guide feature planning and delivery for new functionality requests.
+tags:
+  - feature
+  - planning
+alwaysApply: false
+---
+## ⚙️ Feature Development
+
+- **Trigger:** 当用户需求包含“新增功能”或等价表达时，先输出 Feature Plan 再进入实现。
+- **Feature Plan 模板：**
+  - 功能目标与核心逻辑
+  - 涉及模块与关键文件路径
+  - 依赖的数据流或 API
+  - UI/UX 影响与交互要点
+- **MVP 交付:** 实现最小可行版本，确保类型定义（`interface`/`type`）、JSDoc/TSDoc 注释与示例测试齐备。
+- **依赖管理:** 如需引入新库，说明选择原因、提供安装指令，并同步维护 `package.json` 或其他依赖清单。

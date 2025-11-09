@@ -1,0 +1,13 @@
+---
+description: Keep documentation and code artifacts evolving together.
+tags:
+  - documentation
+  - quality
+alwaysApply: false
+---
+## 🧱 Documentation & Consistency
+
+- **Doc parity:** 为新增模块、函数或重要流程补充 README/MDX 段落或内联注释，保持描述同步。
+- **Style alignment:** 沿用现有文档结构（标题层级、代码块样式、术语），避免出现混合风格。
+- **Interface updates:** 当接口或类型签名变化时，同时更新类型声明、使用示例与相关依赖方。
+- **Release notes:** 提醒维护者在存在 `CHANGELOG` 或版本记录时补充条目，说明影响范围与迁移提示。

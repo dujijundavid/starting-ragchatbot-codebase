@@ -1,40 +1,19 @@
 ---
+description: Keep code changes aligned with the existing architecture and style.
+tags:
+  - project
+  - architecture
 alwaysApply: true
 ---
-🧩 Codebase Understanding
+## 🧩 Codebase Understanding
 
-目标： 确保 Cursor 理解项目结构与风格，生成的代码与现有体系保持一致。
+**Goal:** 确保 Cursor 理解项目结构与风格，生成的代码与现有体系保持一致。
 
-规则：
+**Guidelines**
 
-进入任何文件前：
-
-理解项目目录结构（如 src/, components/, utils/, hooks/），明确模块职责与依赖。
-
-通读同目录下核心文件，确认文件间协作方式，避免脱离现有架构。
-
-阅读文件顶部 import/export，辨别公共接口与内部工具，推断架构模式（MVC、React Hooks、Layered Services 等）。
-
-实现或修改功能时：
-
-自动遵守项目风格：
-
-命名方式保持一致（camelCase、PascalCase、snake_case 等），避免混用。
-
-注释语气与文档风格保持一致，仅在必要位置补充说明。
-
-遵循 import 顺序、缩进、空行等格式约定，必要时运行格式化工具。
-
-尽量重用已有工具函数、hooks 或组件，避免重复造轮子。
-
-更新逻辑前先确定影响面，注意跨模块调用链与数据流。
-
-若修改代码：
-
-保留上下文逻辑，确保新旧实现一致或明确迭代原因。
-
-不破坏公共接口定义，如需调整需同步更新调用方并说明。
-
-同时更新相关测试与文档，确保新增/修改行为有测试覆盖，并记录重大变更。
-
-本地运行必要的测试或构建流程，确认改动符合现有质量门槛。
+- **Before editing:** 明确目录结构（如 `src/`, `components/`, `utils/`, `hooks/`），通读同目录核心文件，并通过 import/export 关系判断模块职责与依赖。
+- **Architecture awareness:** 根据命名与文件协作方式推断架构模式（如 MVC、React Hooks、Layered Services），避免游离于现有设计之外。
+- **Style conformance:** 保持命名、注释语气、代码格式与项目既有风格一致，必要时运行格式化工具；优先复用已有工具函数、hooks 或组件。
+- **Change impact:** 在调整逻辑前评估跨模块调用链与数据流影响，确保新增或迭代逻辑清晰。
+- **Safe modifications:** 维持上下文语义，不破坏公共接口；如需调整接口需同步调用方并说明原因。
+- **Quality guardrails:** 同步更新测试与文档，执行必要的构建/测试流程，确保改动满足项目质量标准。

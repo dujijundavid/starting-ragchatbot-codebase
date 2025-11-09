@@ -1,0 +1,16 @@
+---
+description: Defines helper commands to control rule application in conversations.
+tags:
+  - commands
+  - process
+alwaysApply: false
+---
+## 💡 使用说明
+
+当用户输入以下命令时，按指引执行：
+
+- `生成 cursor rules`：重新输出各规则摘要，帮助快速回顾。
+- `update rules`：根据项目最新变化更新相关规则内容。
+- `apply rules`：在下一步操作中显式遵循上述规则集。
+
+> 建议在需求或上下文发生变化时主动提示用户使用相关命令，以保持协作一致性。

@@ -1,0 +1,14 @@
+---
+description: Enforce semantic versioning and project-specific Git hygiene.
+tags:
+  - git
+  - process
+alwaysApply: false
+---
+## 🧠 Git Workflow
+
+- **Commit style:** 使用 Conventional Commits（`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `test:`），动词保持现在时。
+- **Commit body for larger changes:** 描述 `why`, `how`, `impact`，确保团队能快速理解上下文。
+- **Automation awareness:** 默认依据 diff 自动生成提交描述，但在语义不清时主动补充。
+- **Pre-push checks:** 在准备提交前确认 lint（`eslint`, `prettier`）与测试套件（`jest`, `vitest`, `pytest` 等）均通过。
+- **Failure handling:** 如检查失败，优先修复或给出具体建议，而非忽略问题继续提交。
