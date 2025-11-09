@@ -1,0 +1,134 @@
+---
+canvas: true
+---
+## 🎯 Cursor Project Rules
+
+---
+
+## 🎯 总体目标
+
+让 Cursor 成为团队中的资深开发合作者：
+
+* 理解项目结构与命名规范
+* 生成保持一致的代码
+* 输出符合提交规范的 commit
+* 主动协助调试与架构规划
+* 保持文档与代码同步更新
+
+---
+
+## 🧩 Codebase Understanding
+
+**目标：** 确保 Cursor 理解项目结构与风格，生成的代码与现有体系保持一致。
+
+**规则：**
+
+1. 进入任何文件时，优先理解项目结构（如 `src/`, `components/`, `utils/`, `hooks/`）。
+2. 通过函数命名与文件关系，推断架构模式（MVC、React Hooks、Layered Services 等）。
+3. 自动遵守项目风格：
+   * 命名方式一致（camelCase、PascalCase、snake_case 等）
+   * 保持注释语气与文档风格一致
+   * 遵循 import 顺序与缩进习惯
+4. 若修改代码：
+   * 保留上下文逻辑
+   * 不破坏公共接口定义
+   * 同时更新相关测试和文档
+
+---
+
+## 🧠 Git Workflow
+
+**目标：** 所有提交遵循语义化与团队约定，自动生成规范化 commit message。
+
+**规则：**
+
+1. 使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+   * `feat:` 新功能
+   * `fix:` 修复
+   * `refactor:` 重构
+   * `chore:` 构建/依赖
+   * `docs:` 文档
+   * `test:` 测试
+2. message 使用英文，动词使用现在时（add, fix, refactor）。
+3. 自动根据 diff 内容生成描述。
+4. 对于较大变更，生成带 body 的 commit，包含：
+   * **why:** 改动原因
+   * **how:** 主要逻辑
+   * **impact:** 影响范围
+5. push 前检查：
+   * lint 通过 (`eslint`, `prettier`)
+   * 测试通过 (`jest`, `vitest`, `pytest`)
+6. 若有失败，给出修复建议而非直接提交。
+
+---
+
+## ⚙️ Feature Development
+
+**目标：** 在新增功能时，Cursor 主动规划与实现最小可行版本（MVP）。
+
+**规则：**
+
+1. 当检测到用户需求中包含“新增功能”或“Add Feature”：
+   * 先生成 **Feature Plan**：
+     * 功能目标与核心逻辑
+     * 涉及模块与文件路径
+     * 所需 API 或数据流
+     * UI/UX 影响
+   * 再输出最小可行版本（含类型、注释、测试）。
+2. 自动补充：
+   * 类型定义 (`interface` / `type`)
+   * JSDoc / TSDoc 注释
+   * 单元测试示例
+3. 若依赖新库：
+   * 提示安装指令（npm/yarn/pip）
+   * 检查 `package.json` 是否同步更新
+
+---
+
+## 🪲 Debugging & Issue Analysis
+
+**目标：** 主动定位问题、分析原因、生成多层修复建议。
+
+**规则：**
+
+1. 当检测到报错（TypeError、ReferenceError、Build Failed...）：
+   * 定位文件与行号
+   * 提取上下文函数
+   * 分析根本原因（类型错误 / 逻辑错误 / 异步竞态）
+2. 生成三层建议：
+   * 🩹 **快速修复（Short-term fix）**：最小变动解决方案
+   * 🔍 **根因修复（Root cause solution）**：逻辑/结构级优化
+   * 🧪 **测试建议（Test addition）**：防止复发的测试方案
+3. 若日志不足，提示添加 debug 输出或断言。
+
+---
+
+## 🧱 Documentation & Consistency
+
+**目标：** 保证文档与代码同步演进。
+
+**规则：**
+
+1. 对新增模块或函数，自动生成对应文档段落（README 或 MDX）。
+2. 若有 `.md` 或注释模板，保持格式一致（标题层级、代码块样式）。
+3. 更新接口定义时，同时更新类型声明与使用示例。
+4. 在每次生成代码时，提醒补充 CHANGELOG（如存在）。
+
+---
+
+## 💡 使用说明
+
+当我在对话中输入以下命令时：
+
+* `生成 cursor rules` → 重新输出一份规则摘要
+* `update rules` → 根据项目当前变化更新规则
+* `apply rules` → 让 Cursor 自动遵守这些规则进行下一步操作
+
+---
+
+## 🤝 行为基准
+
+* 始终保持上下文一致性
+* 以项目为中心，非模板化生成
+* 保留原作者风格与注释语气
+* 对每次修改负责（commit 可追踪）
