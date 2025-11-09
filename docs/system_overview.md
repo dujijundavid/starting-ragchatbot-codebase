@@ -6,7 +6,7 @@
 
 ## 这是什么项目？
 
-这是一个 **RAG（Retrieval-Augmented Generation）** 课程资料问答系统：当用户提问时，系统会先检索课程脚本里的相关片段，再把最相关的内容交给大语言模型（Anthropic Claude）生成回答。这样既能提供准确引用，又能给出自然语言解释。
+这是一个 **RAG（Retrieval-Augmented Generation）** 课程资料问答系统：当用户提问时，系统会先检索课程脚本里的相关片段，再把最相关的内容交给 OpenAI 兼容的大语言模型（默认 DeepSeek 或 Qwen）生成回答。这样既能提供准确引用，又能给出自然语言解释。
 
 项目采用全栈架构：
 - **后端 FastAPI**：负责加载课程、完成检索、调用大模型。
@@ -34,18 +34,34 @@
 - **RAG 流程步骤**  
   1. 预处理课程 → 生成向量 → 存入 Chroma。  
   2. 用户提问 → 检索最相似的片段 → 附加到 prompt。  
-  3. 交给 Claude → 生成回答 + 引用来源。  
+  3. 交给大模型 → 生成回答 + 引用来源。  
   4. 前端展示回答、可折叠查看引用。
 
 - **为什么要限制工具调用次数？**  
-  Anthropic 的 Tool schema 会让模型根据需要调用检索工具。限制 “一次调用” 可以保持交互高效，防止模型循环调用工具。
+  OpenAI 兼容接口的 Function Calling 会让模型根据需要调用检索工具。限制 “一次调用” 可以保持交互高效，防止模型循环调用工具。
+
+---
+
+## ChromaDB 如何在项目中工作？
+
+- **持久化客户端与集合初始化**  
+  系统启动时，`VectorStore` 会用 `config.CHROMA_PATH` 初始化 `chromadb.PersistentClient`，并创建两个集合：`course_catalog` 保存课程元数据，`course_content` 保存正文片段。嵌入由 `SentenceTransformerEmbeddingFunction`（默认 `all-MiniLM-L6-v2`）生成，避免手动管理向量模型。参见 `backend/vector_store.py` 中的 `__init__` 与 `_create_collection()`。
+
+- **课程与片段写入流程**  
+  `DocumentProcessor` 负责解析脚本并生成 `Course`、`CourseChunk` 数据结构；随后 `RAGSystem.add_course_document()` 或 `add_course_folder()` 调用 `VectorStore.add_course_metadata()` 与 `add_course_content()` 完成写入。课程在 `course_catalog` 中以 `course.title` 作为 ID，并保存讲师、课程链接、课时 JSON 等字段；片段在 `course_content` 中记录 `course_title`、`lesson_number`、`chunk_index` 便于过滤。
+
+- **查询与过滤**  
+  检索入口是 `VectorStore.search()`：若用户指定课程或课时，会通过 `_resolve_course_name()` 与 `_build_filter()` 构造 Chroma 的 `where` 条件，仅返回匹配的片段。最终结果封装成 `SearchResults`，便于前端展示来源标签和距离分数。
+
+- **与工具链的衔接**  
+  `CourseSearchTool` 调用上述 `search()`，将检索到的 chunk 转成 OpenAI Function schema 所需的 JSON，`AIGenerator` 再把这些片段附加到 prompt 中生成最终回复。整个链路保证了 “向量检索 → Prompt 增强 → 模型回复” 的闭环。
 
 ---
 
 ## 后端模块逐个看
 
 - **`backend/config.py`**  
-  读取 `.env` 配置，提供 API Key、嵌入模型名称（`all-MiniLM-L6-v2`）、chunk 大小、Chroma 存储路径（默认 `./chroma_db`）。集中管理配置可以方便地更换模型或调整参数。
+  读取 `.env` 配置，解析 `LLM_PROVIDER`、对应的 API Key/模型/Base URL，并统一提供嵌入模型名称（`all-MiniLM-L6-v2`）、chunk 大小、Chroma 存储路径（默认 `./chroma_db`）。集中管理配置可以方便地更换模型或调整参数。
 
 - **`backend/document_processor.py`**  
   - 解析 `docs/` 下的课程脚本，提取标题、链接、讲师等元数据。  
@@ -60,7 +76,7 @@
 
 - **`backend/search_tools.py`**  
   - `CourseSearchTool` 将用户问题向量化，执行语义检索，返回附带标签（如 `[Course - Lesson 2]`）和来源的结果。  
-  - `ToolManager` 以 Anthropic Tool schema 注册所有工具，方便 Claude 动态调用。
+  - `ToolManager` 提供 OpenAI Function schema 兼容的工具注册方式，方便模型按需触发课程检索。
 
 - **`backend/session_manager.py`**  
   - 单机内存实现的简易 Session 系统，用 `session_{n}` 作为 ID。  
@@ -68,8 +84,8 @@
   - 保持适当历史能让模型理解上下文，但不会让 prompt 过长。
 
 - **`backend/ai_generator.py`**  
-  - 包装 Anthropic SDK，内置系统提示词，要求回答简洁、引用来源、禁止多次工具调用。  
-  - 如果 Claude 返回 `tool_use`，会自动执行检索并带着搜索结果再次请求模型，得到最终回答。
+  - 封装 OpenAI 兼容客户端，内置系统提示词，要求回答简洁、引用来源、禁止多次工具调用。  
+  - 如果模型返回 `tool_calls`，会自动执行检索并带着搜索结果再次请求模型，得到最终回答。
 
 - **`backend/rag_system.py`**  
   - 将所有组件粘合起来，提供对外接口。  
@@ -112,8 +128,8 @@
    - 后端从 `SessionManager` 取出历史，拼成 prompt。
 
 3. **检索 + 生成**  
-   - Claude 判断是否需要工具；若需要，则触发 `CourseSearchTool`。  
-   - 检索结果（若干 chunk + metadata）被追加到 prompt 中，再次请求 Claude。  
+   - 模型判断是否需要工具；若需要，则触发 `CourseSearchTool`。  
+   - 检索结果（若干 chunk + metadata）被追加到 prompt 中，再次请求模型。  
    - 模型输出最终回答和引用列表。
 
 4. **返回结果**  
@@ -130,7 +146,7 @@
    - 在项目根目录执行 `uv sync` 安装依赖。
 
 2. **配置密钥**
-   - 在项目根目录创建 `.env`，添加 `ANTHROPIC_API_KEY=你的密钥`。  
+   - 在项目根目录创建 `.env`，设置 `LLM_PROVIDER`（`deepseek` / `qwen`）及对应的 API Key、模型、base URL。  
    - 如果要修改嵌入模型或 Chroma 路径，也可以在 `.env` 中覆盖默认值。
 
 3. **启动服务**
@@ -152,7 +168,7 @@
 - **Q：ChromaDB 数据存在哪里？**  
   A：默认在项目根目录下的 `./chroma_db`，可以在 `.env` 中改路径。
 
-- **Q：Claude 会乱编吗？**  
+- **Q：模型会乱编吗？**  
   A：RAG 设计能显著降低幻觉，因为回答基于检索结果。但还是建议在 sources 中查看原文确认关键结论。
 
 - **Q：如何添加新的课程？**  
