@@ -1,10 +1,12 @@
-import anthropic
+import json
 from typing import List, Optional, Dict, Any
 
+from openai import OpenAI
+
+
 class AIGenerator:
-    """Handles interactions with Anthropic's Claude API for generating responses"""
+    """Handles interactions with DeepSeek's OpenAI-compatible API for generating responses"""
     
-    # Static system prompt to avoid rebuilding on each call
     SYSTEM_PROMPT = """ You are an AI assistant specialized in course materials and educational content with access to a comprehensive search tool for course information.
 
 Search Tool Usage:
@@ -29,107 +31,144 @@ All responses must be:
 Provide only the direct answer to what was asked.
 """
     
-    def __init__(self, api_key: str, model: str):
-        self.client = anthropic.Anthropic(api_key=api_key)
-        self.model = model
+    def __init__(self, api_key: str, model: str, base_url: Optional[str] = None):
+        if not api_key:
+            raise ValueError("DEEPSEEK_API_KEY is not set. Please configure it in your .env file.")
         
-        # Pre-build base API parameters
+        client_kwargs = {"api_key": api_key}
+        if base_url:
+            client_kwargs["base_url"] = base_url
+        
+        self.client = OpenAI(**client_kwargs)
+        self.model = model
         self.base_params = {
             "model": self.model,
             "temperature": 0,
             "max_tokens": 800
         }
     
-    def generate_response(self, query: str,
-                         conversation_history: Optional[str] = None,
-                         tools: Optional[List] = None,
-                         tool_manager=None) -> str:
+    def generate_response(
+        self,
+        query: str,
+        conversation_history: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_manager=None
+    ) -> str:
         """
         Generate AI response with optional tool usage and conversation context.
-        
-        Args:
-            query: The user's question or request
-            conversation_history: Previous messages for context
-            tools: Available tools the AI can use
-            tool_manager: Manager to execute tools
-            
-        Returns:
-            Generated response as string
         """
-        
-        # Build system content efficiently - avoid string ops when possible
         system_content = (
             f"{self.SYSTEM_PROMPT}\n\nPrevious conversation:\n{conversation_history}"
-            if conversation_history 
+            if conversation_history
             else self.SYSTEM_PROMPT
         )
         
-        # Prepare API call parameters efficiently
-        api_params = {
+        messages: List[Dict[str, Any]] = [
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": query}
+        ]
+        
+        tool_payload = self._format_tools(tools)
+        chat_params = {
             **self.base_params,
-            "messages": [{"role": "user", "content": query}],
-            "system": system_content
+            "messages": messages
         }
+        if tool_payload:
+            chat_params["tools"] = tool_payload
+            chat_params["tool_choice"] = "auto"
         
-        # Add tools if available
-        if tools:
-            api_params["tools"] = tools
-            api_params["tool_choice"] = {"type": "auto"}
+        response = self.client.chat.completions.create(**chat_params)
+        assistant_message = response.choices[0].message
         
-        # Get response from Claude
-        response = self.client.messages.create(**api_params)
+        if getattr(assistant_message, "tool_calls", None) and tool_manager:
+            return self._handle_tool_execution(assistant_message, messages, tool_payload, tool_manager)
         
-        # Handle tool execution if needed
-        if response.stop_reason == "tool_use" and tool_manager:
-            return self._handle_tool_execution(response, api_params, tool_manager)
-        
-        # Return direct response
-        return response.content[0].text
+        return self._extract_text(assistant_message)
     
-    def _handle_tool_execution(self, initial_response, base_params: Dict[str, Any], tool_manager):
-        """
-        Handle execution of tool calls and get follow-up response.
+    def _format_tools(self, tools: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
+        """Convert internal tool schema to OpenAI/DeepSeek compatible format."""
+        if not tools:
+            return None
         
-        Args:
-            initial_response: The response containing tool use requests
-            base_params: Base API parameters
-            tool_manager: Manager to execute tools
-            
-        Returns:
-            Final response text after tool execution
-        """
-        # Start with existing messages
-        messages = base_params["messages"].copy()
+        formatted = []
+        for tool in tools:
+            name = tool.get("name")
+            if not name:
+                continue
+            formatted.append({
+                "type": "function",
+                "function": {
+                    "name": name,
+                    "description": tool.get("description", ""),
+                    "parameters": tool.get("input_schema", {})
+                }
+            })
+        return formatted or None
+    
+    def _handle_tool_execution(
+        self,
+        assistant_message,
+        messages: List[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]],
+        tool_manager
+    ) -> str:
+        """Execute requested tools and ask DeepSeek for a final response."""
+        message_dict = assistant_message.model_dump() if hasattr(assistant_message, "model_dump") else assistant_message
+        tool_calls = message_dict.get("tool_calls", [])
         
-        # Add AI's tool use response
-        messages.append({"role": "assistant", "content": initial_response.content})
-        
-        # Execute all tool calls and collect results
-        tool_results = []
-        for content_block in initial_response.content:
-            if content_block.type == "tool_use":
-                tool_result = tool_manager.execute_tool(
-                    content_block.name, 
-                    **content_block.input
-                )
-                
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": content_block.id,
-                    "content": tool_result
-                })
-        
-        # Add tool results as single message
-        if tool_results:
-            messages.append({"role": "user", "content": tool_results})
-        
-        # Prepare final API call without tools
-        final_params = {
-            **self.base_params,
-            "messages": messages,
-            "system": base_params["system"]
+        assistant_entry = {
+            "role": "assistant",
+            "content": self._extract_text(message_dict)
         }
+        if tool_calls:
+            assistant_entry["tool_calls"] = tool_calls
+        messages.append(assistant_entry)
         
-        # Get final response
-        final_response = self.client.messages.create(**final_params)
-        return final_response.content[0].text
+        for tool_call in tool_calls:
+            function_data = tool_call.get("function", {})
+            arguments = function_data.get("arguments") or "{}"
+            try:
+                parsed_args = json.loads(arguments)
+            except json.JSONDecodeError:
+                parsed_args = {}
+            result = tool_manager.execute_tool(function_data.get("name"), **parsed_args)
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.get("id"),
+                "content": result
+            })
+        
+        followup_params = {
+            **self.base_params,
+            "messages": messages
+        }
+        if tools:
+            followup_params["tools"] = tools
+            followup_params["tool_choice"] = "none"
+        
+        final_response = self.client.chat.completions.create(**followup_params)
+        return self._extract_text(final_response.choices[0].message)
+    
+    def _extract_text(self, message: Any) -> str:
+        """Normalize response text from OpenAI SDK structures."""
+        if hasattr(message, "model_dump"):
+            message = message.model_dump()
+        
+        content = message.get("content") if isinstance(message, dict) else getattr(message, "content", "")
+        if isinstance(content, str):
+            return content
+        
+        if isinstance(content, list):
+            collected = []
+            for part in content:
+                if isinstance(part, dict):
+                    text_value = part.get("text")
+                    if text_value:
+                        collected.append(text_value)
+                else:
+                    text_attr = getattr(part, "text", None)
+                    if text_attr:
+                        collected.append(text_attr)
+            return "\n".join(collected).strip()
+        
+        return ""

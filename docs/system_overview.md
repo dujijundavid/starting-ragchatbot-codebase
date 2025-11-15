@@ -6,7 +6,7 @@
 
 ## 这是什么项目？
 
-这是一个 **RAG（Retrieval-Augmented Generation）** 课程资料问答系统：当用户提问时，系统会先检索课程脚本里的相关片段，再把最相关的内容交给大语言模型（Anthropic Claude）生成回答。这样既能提供准确引用，又能给出自然语言解释。
+这是一个 **RAG（Retrieval-Augmented Generation）** 课程资料问答系统：当用户提问时，系统会先检索课程脚本里的相关片段，再把最相关的内容交给大语言模型（DeepSeek Chat）生成回答。这样既能提供准确引用，又能给出自然语言解释。
 
 项目采用全栈架构：
 - **后端 FastAPI**：负责加载课程、完成检索、调用大模型。
@@ -34,11 +34,11 @@
 - **RAG 流程步骤**  
   1. 预处理课程 → 生成向量 → 存入 Chroma。  
   2. 用户提问 → 检索最相似的片段 → 附加到 prompt。  
-  3. 交给 Claude → 生成回答 + 引用来源。  
+  3. 交给 DeepSeek 模型 → 生成回答 + 引用来源。  
   4. 前端展示回答、可折叠查看引用。
 
 - **为什么要限制工具调用次数？**  
-  Anthropic 的 Tool schema 会让模型根据需要调用检索工具。限制 “一次调用” 可以保持交互高效，防止模型循环调用工具。
+  DeepSeek（兼容 OpenAI Function Calling）的 schema 会让模型根据需要调用检索工具。限制 “一次调用” 可以保持交互高效，防止模型循环调用工具。
 
 ---
 
@@ -60,7 +60,7 @@
 
 - **`backend/search_tools.py`**  
   - `CourseSearchTool` 将用户问题向量化，执行语义检索，返回附带标签（如 `[Course - Lesson 2]`）和来源的结果。  
-  - `ToolManager` 以 Anthropic Tool schema 注册所有工具，方便 Claude 动态调用。
+  - `ToolManager` 以 OpenAI/DeepSeek Function schema 注册所有工具，方便模型动态调用。
 
 - **`backend/session_manager.py`**  
   - 单机内存实现的简易 Session 系统，用 `session_{n}` 作为 ID。  
@@ -68,8 +68,8 @@
   - 保持适当历史能让模型理解上下文，但不会让 prompt 过长。
 
 - **`backend/ai_generator.py`**  
-  - 包装 Anthropic SDK，内置系统提示词，要求回答简洁、引用来源、禁止多次工具调用。  
-  - 如果 Claude 返回 `tool_use`，会自动执行检索并带着搜索结果再次请求模型，得到最终回答。
+  - 包装 DeepSeek 的 OpenAI 兼容 SDK，内置系统提示词，要求回答简洁、引用来源、禁止多次工具调用。  
+  - 如果模型返回工具调用请求，会自动执行检索并带着搜索结果再次请求模型，得到最终回答。
 
 - **`backend/rag_system.py`**  
   - 将所有组件粘合起来，提供对外接口。  
@@ -112,8 +112,8 @@
    - 后端从 `SessionManager` 取出历史，拼成 prompt。
 
 3. **检索 + 生成**  
-   - Claude 判断是否需要工具；若需要，则触发 `CourseSearchTool`。  
-   - 检索结果（若干 chunk + metadata）被追加到 prompt 中，再次请求 Claude。  
+   - DeepSeek 模型判断是否需要工具；若需要，则触发 `CourseSearchTool`。  
+   - 检索结果（若干 chunk + metadata）被追加到 prompt 中，再次请求模型。  
    - 模型输出最终回答和引用列表。
 
 4. **返回结果**  
@@ -130,7 +130,7 @@
    - 在项目根目录执行 `uv sync` 安装依赖。
 
 2. **配置密钥**
-   - 在项目根目录创建 `.env`，添加 `ANTHROPIC_API_KEY=你的密钥`。  
+   - 在项目根目录创建 `.env`，添加 `DEEPSEEK_API_KEY=你的密钥`。  
    - 如果要修改嵌入模型或 Chroma 路径，也可以在 `.env` 中覆盖默认值。
 
 3. **启动服务**
@@ -152,7 +152,7 @@
 - **Q：ChromaDB 数据存在哪里？**  
   A：默认在项目根目录下的 `./chroma_db`，可以在 `.env` 中改路径。
 
-- **Q：Claude 会乱编吗？**  
+- **Q：DeepSeek 模型会乱编吗？**  
   A：RAG 设计能显著降低幻觉，因为回答基于检索结果。但还是建议在 sources 中查看原文确认关键结论。
 
 - **Q：如何添加新的课程？**  

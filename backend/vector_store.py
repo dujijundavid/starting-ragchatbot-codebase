@@ -3,7 +3,7 @@ from chromadb.config import Settings
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from models import Course, CourseChunk
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
 @dataclass
 class SearchResults:
@@ -31,6 +31,32 @@ class SearchResults:
         """Check if results are empty"""
         return len(self.documents) == 0
 
+
+class FastEmbedEmbeddingFunction:
+    """Embedding function compatible with ChromaDB using fastembed."""
+
+    def __init__(self, model_name: str):
+        self.model_name = model_name
+        self.embedder = TextEmbedding(model_name=model_name)
+
+    def __call__(self, texts: List[str]) -> List[List[float]]:
+        return self.embed_documents(texts)
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        if isinstance(texts, str):
+            texts = [texts]
+        embeddings = []
+        for embedding in self.embedder.embed(texts):
+            if hasattr(embedding, "tolist"):
+                embeddings.append(embedding.tolist())
+            else:
+                embeddings.append(list(embedding))
+        return embeddings
+
+    def embed_query(self, text: str) -> List[float]:
+        return self.embed_documents([text])[0]
+
+
 class VectorStore:
     """Vector storage using ChromaDB for course content and metadata"""
     
@@ -42,10 +68,8 @@ class VectorStore:
             settings=Settings(anonymized_telemetry=False)
         )
         
-        # Set up sentence transformer embedding function
-        self.embedding_function = chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=embedding_model
-        )
+        # FastEmbed-based embedding function avoids heavy torch dependency
+        self.embedding_function = FastEmbedEmbeddingFunction(embedding_model)
         
         # Create collections for different types of data
         self.course_catalog = self._create_collection("course_catalog")  # Course titles/instructors
