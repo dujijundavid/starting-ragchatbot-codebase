@@ -116,21 +116,55 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     messageDiv.className = `message ${type}${isWelcome ? ' welcome-message' : ''}`;
     messageDiv.id = `message-${messageId}`;
     
-    // Convert markdown to HTML for assistant messages
-    const displayContent = type === 'assistant' ? marked.parse(content) : escapeHtml(content);
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
     
-    let html = `<div class="message-content">${displayContent}</div>`;
-    
-    if (sources && sources.length > 0) {
-        html += `
-            <details class="sources-collapsible">
-                <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
-            </details>
-        `;
+    if (type === 'assistant') {
+        messageContent.innerHTML = marked.parse(content);
+    } else {
+        messageContent.textContent = content;
     }
     
-    messageDiv.innerHTML = html;
+    messageDiv.appendChild(messageContent);
+    
+    if (sources && sources.length > 0) {
+        const details = document.createElement('details');
+        details.className = 'sources-collapsible';
+        
+        const summary = document.createElement('summary');
+        summary.className = 'sources-header';
+        summary.textContent = 'Sources';
+        
+        const sourcesContainer = document.createElement('div');
+        sourcesContainer.className = 'sources-content';
+        
+        sources.forEach((source) => {
+            const sourceLabel = typeof source === 'object' && source !== null
+                ? (source.label || '')
+                : source;
+            const displayLabel = sourceLabel || 'Source';
+            
+            const sourceLine = document.createElement('div');
+            
+            if (typeof source === 'object' && source !== null && source.url) {
+                const link = document.createElement('a');
+                link.href = source.url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = displayLabel;
+                sourceLine.appendChild(link);
+            } else {
+                sourceLine.textContent = displayLabel;
+            }
+            
+            sourcesContainer.appendChild(sourceLine);
+        });
+        
+        details.appendChild(summary);
+        details.appendChild(sourcesContainer);
+        messageDiv.appendChild(details);
+    }
+    
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     

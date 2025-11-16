@@ -50,6 +50,14 @@ cd backend
 uv run uvicorn app:app --reload --port 8000
 ```
 
+### Restart Helper
+
+```bash
+uv run python manage_server.py --reload
+```
+
+This Click-based helper first kills any `uvicorn app:app --port 8000` processes, then launches a fresh instance from the `backend` directory. Omit `--reload` to match production settings.
+
 The application will be available at:
 - Web Interface: `http://localhost:8000`
 - API Documentation: `http://localhost:8000/docs`

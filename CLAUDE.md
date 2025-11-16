@@ -9,7 +9,7 @@ This is a Retrieval-Augmented Generation (RAG) system for course materials Q&A. 
 **Tech Stack:**
 - Backend: FastAPI (Python 3.12)
 - Vector DB: ChromaDB with sentence-transformers (all-MiniLM-L6-v2)
-- AI: Anthropic Claude 3.5 Haiku (claude-3.5-haiku-20241022)
+- AI: Anthropic Claude 3.5 Haiku (claude-3-5-haiku-20241022)
 - Frontend: Vanilla JS with marked.js for Markdown rendering
 - Package Manager: uv (not pip/poetry)
 
@@ -123,7 +123,7 @@ This is a **modular RAG pipeline** with clear separation of concerns:
 
 All settings centralized in `backend/config.py`:
 - `ANTHROPIC_API_KEY`: Required (from `.env`)
-- `ANTHROPIC_MODEL`: claude-3.5-haiku-20241022 (override via `.env`)
+- `ANTHROPIC_MODEL`: claude-3-5-haiku-20241022 (override via `.env`)
 - `EMBEDDING_MODEL`: all-MiniLM-L6-v2 (sentence-transformers)
 - `CHUNK_SIZE`: 800 chars
 - `CHUNK_OVERLAP`: 100 chars
