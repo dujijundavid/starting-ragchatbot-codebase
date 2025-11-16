@@ -40,6 +40,10 @@ class QueryRequest(BaseModel):
     query: str
     session_id: Optional[str] = None
 
+class SessionCleanupRequest(BaseModel):
+    """Request model for session cleanup"""
+    session_id: Optional[str] = None
+
 class SourceReference(BaseModel):
     """Represents a single source citation"""
     label: str
@@ -90,6 +94,16 @@ async def get_course_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.post("/api/session/cleanup")
+async def cleanup_session(request: SessionCleanupRequest):
+    """Clear the existing session before starting a new chat"""
+    if not request.session_id:
+        return {"detail": "No active session"}
+
+    rag_system.session_manager.clear_session(request.session_id)
+    return {"detail": "Session cleared"}
+
 @app.on_event("startup")
 async def startup_event():
     """Load initial documents on startup"""
@@ -130,5 +144,5 @@ class DevStaticFiles(StaticFiles):
         return response
     
     
-# Serve static files for the frontend
-app.mount("/", StaticFiles(directory="../frontend", html=True), name="static")
+# Serve static files for the frontend (with no-cache headers in dev)
+app.mount("/", DevStaticFiles(directory="../frontend", html=True), name="static")

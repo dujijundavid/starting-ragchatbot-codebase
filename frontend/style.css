@@ -472,6 +472,29 @@ header h1 {
     letter-spacing: 0.5px;
 }
 
+.sidebar-action-button {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: none;
+    border: none;
+    padding: 0.5rem 0;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+    font-family: inherit;
+}
+
+.sidebar-action-button:hover,
+.sidebar-action-button:focus {
+    color: var(--primary-color);
+    outline: none;
+    transform: translateX(2px);
+}
+
 .stats-header:focus,
 .suggested-header:focus {
     color: var(--primary-color);

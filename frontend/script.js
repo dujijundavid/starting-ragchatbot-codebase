@@ -5,7 +5,7 @@ const API_URL = '/api';
 let currentSessionId = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, newChatButton;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.getElementById('sendButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
+    newChatButton = document.getElementById('newChatButton');
     
     setupEventListeners();
     createNewSession();
@@ -38,6 +39,10 @@ function setupEventListeners() {
             sendMessage();
         });
     });
+
+    if (newChatButton) {
+        newChatButton.addEventListener('click', handleNewChat);
+    }
 }
 
 
@@ -120,7 +125,9 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     messageContent.className = 'message-content';
     
     if (type === 'assistant') {
-        messageContent.innerHTML = marked.parse(content);
+        const hasMarked = typeof window !== 'undefined' && window.marked && typeof window.marked.parse === 'function';
+        const rendered = hasMarked ? window.marked.parse(content) : escapeHtml(content);
+        messageContent.innerHTML = rendered;
     } else {
         messageContent.textContent = content;
     }
@@ -184,6 +191,40 @@ async function createNewSession() {
     currentSessionId = null;
     chatMessages.innerHTML = '';
     addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, true);
+}
+
+async function handleNewChat() {
+    if (!newChatButton) return;
+    newChatButton.disabled = true;
+
+    try {
+        await cleanupSession();
+    } finally {
+        await createNewSession();
+        newChatButton.disabled = false;
+    }
+}
+
+async function cleanupSession() {
+    if (!currentSessionId) return;
+
+    try {
+        const response = await fetch(`${API_URL}/session/cleanup`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                session_id: currentSessionId,
+            }),
+        });
+
+        if (!response.ok) {
+            console.warn('Failed to clean up session');
+        }
+    } catch (error) {
+        console.error('Error cleaning up session:', error);
+    }
 }
 
 // Load course statistics
