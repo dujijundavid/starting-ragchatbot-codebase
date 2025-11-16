@@ -88,14 +88,24 @@ async def get_course_stats():
 @app.on_event("startup")
 async def startup_event():
     """Load initial documents on startup"""
-    docs_path = "../docs"
-    if os.path.exists(docs_path):
-        print("Loading initial documents...")
-        try:
-            courses, chunks = rag_system.add_course_folder(docs_path, clear_existing=False)
-            print(f"Loaded {courses} courses with {chunks} chunks")
-        except Exception as e:
-            print(f"Error loading documents: {e}")
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+    
+    # Load documents in background to not block server startup
+    def load_docs():
+        docs_path = "../docs"
+        if os.path.exists(docs_path):
+            print("Loading initial documents...")
+            try:
+                courses, chunks = rag_system.add_course_folder(docs_path, clear_existing=False)
+                print(f"Loaded {courses} courses with {chunks} chunks")
+            except Exception as e:
+                print(f"Error loading documents: {e}")
+    
+    # Start loading in background thread
+    loop = asyncio.get_event_loop()
+    executor = ThreadPoolExecutor(max_workers=1)
+    loop.run_in_executor(executor, load_docs)
 
 # Custom static file handler with no-cache headers for development
 from fastapi.staticfiles import StaticFiles
